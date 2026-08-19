@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Hours — Non-Exempt / Travel</title>
+<style>
+:root{
+  --bg:#070A0E; --panel:#0E141B; --panel2:#151D26; --line:#26313C;
+  --brand:#0C4E7E; --violet:#2E9BE6; --cyan:#A9B7C4; --amber:#7FC9F5; --red:#FF6B7A;
+  --text:#E7EDF3; --muted:#7E8C99;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg)}
+body{
+  color:var(--text); min-height:100vh; padding:26px 16px 60px;
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1040px;margin:0 auto}
+
+.hd{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px;position:relative}
+.hd:after{content:"";position:absolute;left:0;bottom:-1px;width:132px;height:2px;
+  background:linear-gradient(90deg,var(--brand),var(--violet),var(--cyan))}
+.eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--violet);margin-bottom:10px}
+h1{font-size:30px;font-weight:650;letter-spacing:-.02em;margin:0 0 8px}
+.sub{margin:0;color:var(--muted);font-size:14px;max-width:64ch;line-height:1.5}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 322px;gap:28px;align-items:start}
+@media(max-width:880px){.grid{grid-template-columns:1fr}}
+
+/* ---- run sheet ---- */
+.rail{position:relative;padding-left:26px}
+.rail:before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:1px;background:var(--line)}
+.evt{position:relative;display:flex;align-items:center;gap:14px;padding:9px 0}
+.evt:before{content:"";position:absolute;left:-23px;top:50%;transform:translateY(-50%);
+  width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--violet)}
+.evt.off{opacity:.35}
+.evt.off:before{border-color:var(--muted)}
+.evt .lab{flex:1;min-width:0}
+.evt .name{font-size:14px}
+.evt .code{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.tin{width:92px;padding:9px 10px;text-align:center;border-radius:8px;font-size:15px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--text);outline:none;transition:border-color .15s}
+.tin::placeholder{color:#4C5A67}
+.tin:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(46,155,230,.22)}
+.tin.bad{border-color:var(--red)}
+.tin:disabled{opacity:.5;cursor:not-allowed}
+
+.seg{position:relative;overflow:hidden;background:linear-gradient(180deg,#121A23,#0C1219);box-shadow:inset 0 1px 0 rgba(198,214,228,.07);border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px 12px 18px;margin:6px 0;display:flex;align-items:center;gap:13px}
+.seg:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--violet)}
+.seg.tv:before{background:var(--cyan)}
+.seg.lunch{margin-left:22px;border-style:dashed}
+.seg.lunch:before{background:var(--amber)}
+.seg.off{opacity:.42}
+.seg .title{flex:1;min-width:0;font-size:14px}
+.seg .meta{font-size:11.5px;color:var(--muted);margin-top:3px}
+.chip{font-size:13px;padding:4px 9px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+.chip.w{color:var(--violet)} .chip.t{color:var(--cyan)} .chip.join{color:var(--muted);border-style:dashed}
+.chip.warn{color:var(--amber);border-color:#27485E}
+.lunchtimes{display:flex;align-items:center;gap:8px}
+.lunchtimes .tin{width:82px;padding:7px 8px;font-size:14px}
+.arrow{color:var(--muted);font-size:13px}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:pointer;flex:none}
+
+/* ---- readout ---- */
+.readout{position:sticky;top:20px;background:linear-gradient(180deg,#121A23,#0C1219);box-shadow:inset 0 1px 0 rgba(198,214,228,.13);border:1px solid var(--line);border-radius:14px;padding:20px}
+.tot-lab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.total{font-size:46px;font-weight:600;letter-spacing:-.02em;line-height:1.05;margin-top:8px}
+.dec{color:var(--cyan);font-size:13px;margin-top:6px}
+.note{font-size:12px;color:var(--amber);margin-top:12px;line-height:1.45}
+.brk{margin-top:18px;border-top:1px solid var(--line);padding-top:10px}
+.brow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px;padding:5px 0;color:var(--muted)}
+.brow span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow b{color:var(--text);font-weight:500}
+.brow.ded b{color:var(--amber)}
+.brow.tot{border-top:1px solid var(--line);margin-top:6px;padding-top:9px}
+.brow.tot b{font-size:15px}
+
+.tl{display:flex;flex-direction:column;height:210px;margin-top:18px;border:1px solid var(--line);
+  border-radius:8px;overflow:hidden;background:var(--panel2)}
+.blk{position:relative;min-height:3px}
+.blk.work{background:linear-gradient(100deg,rgba(46,155,230,.95),rgba(46,155,230,.55))}
+.blk.travel{background:linear-gradient(100deg,rgba(186,199,211,.92),rgba(140,155,169,.6))}
+.blk.gapblk{background:repeating-linear-gradient(45deg,#0F161D,#0F161D 4px,#182129 4px,#182129 8px)}
+.blk .bl{position:absolute;left:9px;top:4px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:rgba(3,8,13,.75);font-weight:700}
+.ov-unpaid{position:absolute;left:0;right:0;top:0;
+  background:repeating-linear-gradient(45deg,rgba(2,6,10,.58),rgba(2,6,10,.58) 3px,transparent 3px,transparent 6px)}
+.ov-lunch{position:absolute;left:0;right:0;
+  background:repeating-linear-gradient(45deg,rgba(216,226,236,.6),rgba(216,226,236,.6) 3px,rgba(2,6,10,.5) 3px,rgba(2,6,10,.5) 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:12px;text-align:center;padding:0 18px}
+
+.btns{display:flex;gap:8px;margin-top:16px}
+.b{flex:1;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;transition:border-color .15s}
+.b:hover{border-color:var(--violet)}
+.b.pri{background:linear-gradient(180deg,#1B7FC7,#0C5488);border-color:#2A8BD0}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.proj{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.ptitle{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.prow{display:flex;align-items:baseline;gap:10px;padding:5px 0}
+.prow .pt{flex:none;width:46px;font-size:12px;color:var(--muted)}
+.prow b{font-size:16px;font-weight:600;color:var(--violet)}
+.prow.done b{color:var(--cyan)}
+.prow em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.phint{font-size:12px;color:var(--muted)}
+.foot{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <div class="eyebrow">Daily time record · 24 h</div>
+    <h1>Hours worked</h1>
+    <p class="sub">Enter each transfer time as it happened. Travel pays after the first 0:30 of each leg. Untick any segment you didn't run that day.</p>
+  </div>
+
+  <div class="grid">
+    <!-- ============ run sheet ============ -->
+    <div class="rail">
+
+      <div class="evt" id="row_clockIn">
+        <div class="lab"><div class="name">Clock in</div><div class="code">In · non-exempt</div></div>
+        <input class="tin mono" id="t_clockIn" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Clock in">
+      </div>
+
+      <div class="seg" id="s_work1">
+        <input type="checkbox" id="c_work1" checked aria-label="Include pre-travel work">
+        <div class="title">Pre-travel work<div class="meta" id="m_work1">Clock in → travel 1</div></div>
+        <div class="chip w mono" id="d_work1">–</div>
+      </div>
+
+      <div class="evt" id="row_t1Start">
+        <div class="lab"><div class="name">Travel 1 starts</div><div class="code">T1 · transfer</div></div>
+        <input class="tin mono" id="t_t1Start" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Travel 1 start">
+      </div>
+
+      <div class="seg tv" id="s_travel1">
+        <input type="checkbox" id="c_travel1" checked aria-label="Include travel 1">
+        <div class="title">Travel 1<div class="meta">First 0:30 unpaid</div></div>
+        <div class="chip t mono" id="d_travel1">–</div>
+      </div>
+
+      <div class="evt" id="row_resume">
+        <div class="lab"><div class="name">Work resumes</div><div class="code">RS · transfer</div></div>
+        <input class="tin mono" id="t_resume" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Work resumes">
+      </div>
+
+      <div class="seg" id="s_work2">
+        <input type="checkbox" id="c_work2" checked aria-label="Include midday work">
+        <div class="title">Midday work<div class="meta" id="m_work2">Work resumes → travel 2</div></div>
+        <div class="chip w mono" id="d_work2">–</div>
+      </div>
+
+      <div class="seg lunch" id="s_lunch">
+        <input type="checkbox" id="c_lunch" aria-label="Lunch taken">
+        <div class="title">Lunch taken<div class="meta">Unpaid — deducted from the work segment it falls in</div></div>
+        <div class="lunchtimes" id="lunchtimes" hidden>
+          <input class="tin mono" id="t_lunchOut" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Lunch clock out">
+          <span class="arrow">→</span>
+          <input class="tin mono" id="t_lunchIn" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Lunch clock in">
+        </div>
+      </div>
+
+      <div class="evt" id="row_t2Start">
+        <div class="lab"><div class="name">Travel 2 starts</div><div class="code">T2 · transfer</div></div>
+        <input class="tin mono" id="t_t2Start" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Travel 2 start">
+      </div>
+
+      <div class="seg tv" id="s_travel2">
+        <input type="checkbox" id="c_travel2" checked aria-label="Include travel 2">
+        <div class="title">Travel 2<div class="meta">First 0:30 unpaid</div></div>
+        <div class="chip t mono" id="d_travel2">–</div>
+      </div>
+
+      <div class="evt" id="row_nxResume">
+        <div class="lab"><div class="name">Non-exempt resumes</div><div class="code">NX · transfer</div></div>
+        <input class="tin mono" id="t_nxResume" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Non-exempt resumes">
+      </div>
+
+      <div class="seg" id="s_work3">
+        <input type="checkbox" id="c_work3" checked aria-label="Include post-travel work">
+        <div class="title">Post-travel work<div class="meta" id="m_work3">Non-exempt resumes → clock out</div></div>
+        <div class="chip w mono" id="d_work3">–</div>
+      </div>
+
+      <div class="evt" id="row_clockOut">
+        <div class="lab"><div class="name">Clock out</div><div class="code">Out · end of day</div></div>
+        <input class="tin mono" id="t_clockOut" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Clock out">
+      </div>
+    </div>
+
+    <!-- ============ readout ============ -->
+    <div class="readout">
+      <div class="tot-lab">Total worked</div>
+      <div class="total mono" id="total">00:00</div>
+      <div class="dec mono" id="dec">0.00 h</div>
+      <div class="note" id="note" hidden></div>
+
+      <div class="brk" id="brk"></div>
+      <div class="proj" id="proj"></div>
+
+      <div class="tl" id="tl"><div class="empty">Enter times to plot the day</div></div>
+      <div class="legend">
+        <span><i style="background:rgba(46,155,230,.9)"></i>Work</span>
+        <span><i style="background:rgba(186,199,211,.85)"></i>Travel</span>
+        <span><i style="background:rgba(216,226,236,.6)"></i>Lunch</span>
+        <span><i style="background:#182129"></i>Unpaid / gap</span>
+      </div>
+
+      <div class="btns">
+        <button class="b pri" id="copy">Copy summary</button>
+        <button class="b" id="reset">Clear day</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Times roll over midnight automatically — an entry earlier than the one above it is read as the next day.<br>
+    Travel deduction is applied per leg: 0:15 pays 0:00, 0:50 pays 0:20.<br>
+    A travel leg you leave blank drops out of the day — the work on either side runs straight through it.
+  </div>
+</div>
+
+<script>
+/* ---------------- time helpers ---------------- */
+const pad = (n) => String(n).padStart(2, "0");
+const fmt = (m) => {
+  const v = Math.max(0, Math.round(m));
+  return pad(Math.floor(v / 60)) + ":" + pad(v % 60);
+};
+const clockAt = (m) => {
+  const d = Math.floor(m / 1440), rem = m - d * 1440;
+  return pad(Math.floor(rem / 60)) + ":" + pad(rem % 60) + (d > 0 ? " +" + d + "d" : "");
+};
+const toMin = (s) => {
+  const m = /^(\d{1,2}):([0-5]\d)$/.exec((s || "").trim());
+  if (!m) return null;
+  const h = +m[1];
+  if (h > 23) return null;
+  return h * 60 + +m[2];
+};
+const mask = (s) => {
+  const d = (s || "").replace(/\D/g, "").slice(0, 4);
+  return d.length <= 2 ? d : d.slice(0, 2) + ":" + d.slice(2);
+};
+const normalize = (s) => {
+  const d = (s || "").replace(/\D/g, "");
+  if (!d) return "";
+  let h, mi;
+  if (d.length <= 2) { h = +d; mi = 0; }
+  else if (d.length === 3) { h = +d[0]; mi = +d.slice(1); }
+  else { h = +d.slice(0, 2); mi = +d.slice(2, 4); }
+  if (h > 23 || mi > 59) return s;
+  return pad(h) + ":" + pad(mi);
+};
+
+/* ---------------- model ---------------- */
+const TIMES = ["clockIn", "t1Start", "resume", "t2Start", "nxResume", "clockOut"];
+const EVENTS = [
+  { key: "clockIn",  name: "Clock in",           code: "In · non-exempt" },
+  { key: "t1Start",  name: "Travel 1 starts",    code: "T1 · transfer" },
+  { key: "resume",   name: "Work resumes",       code: "RS · transfer" },
+  { key: "t2Start",  name: "Travel 2 starts",    code: "T2 · transfer" },
+  { key: "nxResume", name: "Non-exempt resumes", code: "NX · transfer" },
+  { key: "clockOut", name: "Clock out",          code: "Out · end of day" },
+];
+const DEFS = [
+  { key: "work1",   label: "Pre-travel work",  type: "work",   a: "clockIn",  b: "t1Start",  meta: "Clock in → travel 1" },
+  { key: "travel1", label: "Travel 1",         type: "travel", a: "t1Start",  b: "resume",   meta: "First 0:30 unpaid" },
+  { key: "work2",   label: "Midday work",      type: "work",   a: "resume",   b: "t2Start",  meta: "Work resumes → travel 2" },
+  { key: "travel2", label: "Travel 2",         type: "travel", a: "t2Start",  b: "nxResume", meta: "First 0:30 unpaid" },
+  { key: "work3",   label: "Post-travel work", type: "work",   a: "nxResume", b: "clockOut", meta: "Non-exempt resumes → clock out" },
+];
+const TRAVEL_GRACE = 30;
+const TARGETS = [480, 510];
+
+/* The day is measured in spans: the stretches between the times you actually filled
+   in. Segments you switch off drop out of their span, so their transfer times are
+   optional — leave them blank and the work either side runs straight through. */
+function compute(t, on, lunch) {
+  const abs = {};
+  let prev = null;
+  for (const k of TIMES) {
+    let v = toMin(t[k]);
+    if (v === null) { abs[k] = null; continue; }
+    if (prev !== null) { while (v < prev) v += 1440; }
+    abs[k] = v; prev = v;
+  }
+
+  let lo = null, li = null;
+  if (lunch) {
+    const a = toMin(t.lunchOut), b = toMin(t.lunchIn);
+    if (a !== null && b !== null) {
+      let base = null;
+      for (const k of TIMES) { if (abs[k] !== null) { base = abs[k]; break; } }
+      if (base === null) base = 0;
+      lo = a; while (lo < base) lo += 1440;
+      li = b; while (li < lo) li += 1440;
+    }
+  }
+
+  const filled = [];
+  TIMES.forEach((k, i) => { if (abs[k] !== null) filled.push(i); });
+
+  /* a travel leg that's ticked but has neither transfer time filled in simply
+     wasn't driven — it drops out so the work either side runs straight through */
+  const unused = {};
+  DEFS.forEach((d) => {
+    unused[d.key] = on[d.key] && d.type === "travel" && abs[d.a] === null && abs[d.b] === null;
+  });
+  const live = (d) => on[d.key] && !unused[d.key];
+
+  const spans = [];
+  let total = 0, unpaidTravel = 0, lunchDed = 0, ambiguous = false;
+
+  for (let n = 0; n < filled.length - 1; n++) {
+    const i = filled[n], j = filled[n + 1];
+    const start = abs[TIMES[i]], end = abs[TIMES[j]], elapsed = end - start;
+    const members = DEFS.slice(i, j).filter(live);
+    if (!members.length) { spans.push({ kind: "gap", start, end, elapsed, members: [] }); continue; }
+
+    const legs = members.filter((m) => m.type === "travel").length;
+    const works = members.length - legs;
+    if (legs && works) {
+      ambiguous = true;
+      spans.push({ kind: "ambiguous", start, end, elapsed, members });
+      continue;
+    }
+
+    let ded = 0, lunchFrom = null;
+    if (legs) {
+      ded = Math.min(elapsed, TRAVEL_GRACE * legs);
+      unpaidTravel += ded;
+    } else if (lo !== null) {
+      const ov = Math.max(0, Math.min(end, li) - Math.max(start, lo));
+      if (ov > 0) { ded = ov; lunchFrom = Math.max(start, lo); lunchDed += ov; }
+    }
+    const paid = Math.max(0, elapsed - ded);
+    total += paid;
+    spans.push({
+      kind: legs ? "travel" : "work",
+      start, end, elapsed, ded, paid, lunchFrom, members,
+      label: members.map((m) => m.label).join(" + "),
+    });
+  }
+
+  const segStatus = {}, spanOf = {};
+  DEFS.forEach((d) => { segStatus[d.key] = !on[d.key] ? "off" : unused[d.key] ? "unused" : "missing"; });
+  spans.forEach((sp) => {
+    if (sp.kind !== "work" && sp.kind !== "travel") return;
+    sp.members.forEach((m, k) => { segStatus[m.key] = k === 0 ? "ok" : "joined"; spanOf[m.key] = sp; });
+  });
+
+  const lunchMissing = lunch && lo === null;
+  const missing = DEFS.some((d) => segStatus[d.key] === "missing");
+  const stuck = [];
+  spans.forEach((sp) => {
+    if (sp.kind === "ambiguous") sp.members.forEach((m) => { if (m.type === "travel") stuck.push(m.label); });
+  });
+  return {
+    abs, lo, li, spans, total, unpaidTravel, lunchDed, segStatus, spanOf,
+    ambiguous, stuck, lunchMissing, incomplete: missing || lunchMissing || ambiguous,
+  };
+}
+
+/* ---------------- projected clock-out ----------------
+   Lays the day out as paid / unpaid bands, then carries the currently open
+   segment forward to find when each target is reached. */
+function project(r, on) {
+  const abs = r.abs, lo = r.lo, li = r.li;
+  let lastIdx = -1;
+  TIMES.forEach((k, i) => { if (abs[k] !== null) lastIdx = i; });
+  if (lastIdx < 0) return null;
+  const anchor = abs[TIMES[lastIdx]];
+
+  const iv = [];
+  r.spans.forEach((sp) => {
+    if (sp.kind === "travel") {
+      const g = Math.min(sp.elapsed, sp.ded);
+      iv.push({ a: sp.start, b: sp.start + g, rate: 0 });
+      if (sp.end > sp.start + g) iv.push({ a: sp.start + g, b: sp.end, rate: 1 });
+    } else if (sp.kind === "work") {
+      if (sp.ded > 0 && sp.lunchFrom !== null) {
+        const oa = sp.lunchFrom, ob = oa + sp.ded;
+        if (oa > sp.start) iv.push({ a: sp.start, b: oa, rate: 1 });
+        iv.push({ a: oa, b: ob, rate: 0 });
+        if (sp.end > ob) iv.push({ a: ob, b: sp.end, rate: 1 });
+      } else {
+        iv.push({ a: sp.start, b: sp.end, rate: 1 });
+      }
+    }
+  });
+
+  let open = null;
+  for (let i = lastIdx; i < DEFS.length; i++) {
+    const d = DEFS[i];
+    if (!on[d.key]) continue;
+    if (d.type === "travel" && abs[d.a] === null && abs[d.b] === null && i > lastIdx) continue;
+    open = d; break;
+  }
+  const horizon = anchor + 1440;
+  /* A travel leg that's started but not finished is projected as zero — no grace,
+     no elapsed time — until both of its transfer times are filled in. */
+  if (lo !== null && li > anchor) {
+    const s0 = Math.max(anchor, lo), s1 = Math.max(s0, li);
+    if (s0 > anchor) iv.push({ a: anchor, b: s0, rate: 1 });
+    iv.push({ a: s0, b: s1, rate: 0 });
+    iv.push({ a: s1, b: horizon, rate: 1 });
+  } else {
+    iv.push({ a: anchor, b: horizon, rate: 1 });
+  }
+  iv.sort((x, y) => x.a - y.a);
+
+  const openTravel = !!(open && open.type === "travel");
+  const openLabel = open ? open.label : null;
+  return TARGETS.map((T) => {
+    let acc = 0, at = null;
+    for (const p of iv) {
+      if (p.b <= p.a) continue;
+      const gain = (p.b - p.a) * p.rate;
+      if (p.rate === 1 && acc + gain >= T) { at = p.a + (T - acc); break; }
+      acc += gain;
+    }
+    return { target: T, at, passed: at !== null && at <= anchor, openTravel, openLabel };
+  });
+}
+
+/* ---------------- render ---------------- */
+function readState(){
+  const t = {};
+  TIMES.concat(["lunchOut", "lunchIn"]).forEach((k) => { t[k] = document.getElementById("t_" + k).value; });
+  const on = {};
+  DEFS.forEach((d) => { on[d.key] = document.getElementById("c_" + d.key).checked; });
+  return { t, on, lunch: document.getElementById("c_lunch").checked };
+}
+
+function render(){
+  const s = readState();
+  const r = compute(s.t, s.on, s.lunch);
+
+  /* boundary rows — clock in and clock out always stay live */
+  TIMES.forEach((k) => {
+    const used = k === "clockIn" || k === "clockOut" || DEFS.some((d) => s.on[d.key] && (d.a === k || d.b === k));
+    const row = document.getElementById("row_" + k), inp = document.getElementById("t_" + k);
+    row.classList.toggle("off", !used);
+    inp.disabled = !used;
+    inp.classList.toggle("bad", inp.value.trim() !== "" && toMin(inp.value) === null);
+  });
+  ["lunchOut", "lunchIn"].forEach((k) => {
+    const inp = document.getElementById("t_" + k);
+    inp.classList.toggle("bad", inp.value.trim() !== "" && toMin(inp.value) === null);
+  });
+  document.getElementById("lunchtimes").hidden = !s.lunch;
+  document.getElementById("s_lunch").classList.toggle("off", !s.lunch);
+
+  /* segment cards */
+  DEFS.forEach((d) => {
+    const st = r.segStatus[d.key], sp = r.spanOf[d.key];
+    const card = document.getElementById("s_" + d.key), chip = document.getElementById("d_" + d.key);
+    card.classList.toggle("off", st === "off");
+    chip.className = "chip mono " + (st === "missing" ? "warn"
+      : st === "joined" || st === "unused" ? "join"
+      : d.type === "travel" ? "t" : "w");
+    chip.textContent = st === "off" ? "off"
+      : st === "unused" ? "not used"
+      : st === "joined" ? "joined"
+      : st === "missing" ? "needs times"
+      : fmt(sp.paid) + (sp.ded > 0 ? "  (\u2212" + fmt(sp.ded) + ")" : "");
+  });
+
+  /* totals */
+  document.getElementById("total").textContent = fmt(r.total);
+  document.getElementById("dec").textContent = (r.total / 60).toFixed(2) + " h";
+  const note = document.getElementById("note");
+  if(r.lunchMissing){ note.hidden = false; note.textContent = "Lunch is ticked but its two times aren\u2019t set yet."; }
+  else if(r.stuck.length){ note.hidden = false; note.textContent = r.stuck[0] + " is on but only half recorded \u2014 add its other transfer time, or untick it."; }
+  else if(r.incomplete){ note.hidden = false; note.textContent = "Partial total \u2014 some enabled segments are still missing a time."; }
+  else note.hidden = true;
+
+  /* breakdown */
+  let rows = "";
+  r.spans.forEach((sp) => {
+    if(sp.kind !== "work" && sp.kind !== "travel") return;
+    rows += '<div class="brow"><span>' + sp.label + '</span><b class="mono">' + fmt(sp.paid) + "</b></div>";
+  });
+  if(r.unpaidTravel > 0)
+    rows += '<div class="brow ded"><span>Unpaid travel (0:30 / leg)</span><b class="mono">\u2212' + fmt(r.unpaidTravel) + "</b></div>";
+  if(r.lunchDed > 0)
+    rows += '<div class="brow ded"><span>Lunch</span><b class="mono">\u2212' + fmt(r.lunchDed) + "</b></div>";
+  rows += '<div class="brow tot"><span>Total worked</span><b class="mono">' + fmt(r.total) + "</b></div>";
+  document.getElementById("brk").innerHTML = rows;
+
+  /* projected clock-out */
+  const proj = project(r, s.on);
+  let pHtml = '<div class="ptitle">Projected clock-out</div>';
+  if(proj === null){
+    pHtml += '<div class="phint">Enter a time to project from.</div>';
+  } else {
+    proj.forEach((p) => {
+      const right = p.at === null ? "beyond +24 h" : p.passed ? "reached" : fmt(p.target - r.total) + " to go";
+      pHtml += '<div class="prow' + (p.passed ? " done" : "") + '">'
+             + '<span class="pt mono">' + fmt(p.target) + "</span>"
+             + '<b class="mono">' + (p.at === null ? "\u2014" : clockAt(p.at)) + "</b>"
+             + "<em>" + right + "</em></div>";
+    });
+    if(proj[0] && proj[0].openTravel)
+      pHtml += '<div class="phint">' + proj[0].openLabel + ' is open \u2014 counted as 0 until you enter its end time.</div>';
+  }
+  document.getElementById("proj").innerHTML = pHtml;
+
+  /* timeline */
+  const tl = document.getElementById("tl");
+  const drawn = r.spans.filter((sp) => sp.elapsed > 0);
+  if(!drawn.length){ tl.innerHTML = '<div class="empty">Enter times to plot the day</div>'; }
+  else {
+    tl.innerHTML = drawn.map((sp) => {
+      if(sp.kind !== "work" && sp.kind !== "travel")
+        return '<div class="blk gapblk" style="flex:' + sp.elapsed + ' 0 0"></div>';
+      let inner = "";
+      if(sp.kind === "travel" && sp.ded > 0)
+        inner += '<div class="ov-unpaid" style="height:' + (sp.ded / sp.elapsed * 100) + '%"></div>';
+      if(sp.kind === "work" && sp.ded > 0)
+        inner += '<div class="ov-lunch" style="top:' + ((sp.lunchFrom - sp.start) / sp.elapsed * 100)
+               + "%;height:" + (sp.ded / sp.elapsed * 100) + '%"></div>';
+      inner += '<div class="bl">' + fmt(sp.paid) + "</div>";
+      return '<div class="blk ' + sp.kind + '" style="flex:' + sp.elapsed + ' 0 0" title="' + sp.label + '">' + inner + "</div>";
+    }).join("");
+  }
+}
+
+function summary(){
+  const s = readState(), r = compute(s.t, s.on, s.lunch), lines = ["Daily hours (24 h)"];
+  r.spans.forEach((sp) => {
+    if(sp.kind === "work" || sp.kind === "travel")
+      lines.push(sp.label + ": " + fmt(sp.paid) + (sp.ded > 0 ? " (\u2212" + fmt(sp.ded) + ")" : ""));
+  });
+  if(r.unpaidTravel > 0) lines.push("Unpaid travel: \u2212" + fmt(r.unpaidTravel));
+  if(r.lunchDed > 0) lines.push("Lunch: \u2212" + fmt(r.lunchDed));
+  lines.push("TOTAL WORKED: " + fmt(r.total) + "  (" + (r.total / 60).toFixed(2) + " h)");
+  const p = project(r, s.on);
+  if(p) p.forEach((x) => { if(x.at !== null) lines.push(fmt(x.target) + " worked at " + clockAt(x.at)); });
+  return lines.join("\n");
+}
+
+/* ---------------- wiring ---------------- */
+var allTimeIds = TIMES.concat(['lunchOut','lunchIn']);
+allTimeIds.forEach(function(k){
+  var el = document.getElementById('t_'+k);
+  el.addEventListener('input', function(){ el.value = mask(el.value); render(); });
+  el.addEventListener('blur',  function(){ el.value = normalize(el.value); render(); });
+});
+DEFS.forEach(function(d){ document.getElementById('c_'+d.key).addEventListener('change', render); });
+document.getElementById('c_lunch').addEventListener('change', render);
+
+document.getElementById('reset').addEventListener('click', function(){
+  allTimeIds.forEach(function(k){ document.getElementById('t_'+k).value = ''; });
+  DEFS.forEach(function(d){ document.getElementById('c_'+d.key).checked = true; });
+  document.getElementById('c_lunch').checked = false;
+  render();
+  document.getElementById('t_clockIn').focus();
+});
+
+document.getElementById('copy').addEventListener('click', function(){
+  var btn = this, txt = summary();
+  var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy summary'; }, 1400); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done, function(){ fallback(txt, done); });
+  } else fallback(txt, done);
+});
+function fallback(txt, done){
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch(e){ alert(txt); }
+  document.body.removeChild(ta);
+}
+
+render();
+</script>
+</body>
+</html>
