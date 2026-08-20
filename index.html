@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   Daily Hours Calculator
-  Copyright (c) 2026 g4r8wfryph-crypto
+  Copyright (c) 2026 Zaid Hamilton
 
   Licensed under the Creative Commons Attribution-NonCommercial 4.0
   International License (CC BY-NC 4.0). You are free to share and adapt this
@@ -14,7 +14,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Daily Hours — Non-Exempt / Travel</title>
+<title>Daily Hours Calculator</title>
 <style>
 :root{
   --bg:#070A0E; --panel:#0E141B; --panel2:#151D26; --line:#26313C;
@@ -122,9 +122,15 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
 .prow em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--muted);white-space:nowrap}
 .phint{font-size:12px;color:var(--muted)}
 
-.howto{margin:0 0 26px;background:linear-gradient(180deg,#121A23,#0C1219);box-shadow:inset 0 1px 0 rgba(198,214,228,.07);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
-.howto .h{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--violet);margin-bottom:9px}
-.howto ul{margin:0;padding-left:18px}
+.howto{margin:0 0 26px;background:linear-gradient(180deg,#121A23,#0C1219);box-shadow:inset 0 1px 0 rgba(198,214,228,.07);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.howto summary{list-style:none;cursor:pointer;padding:13px 18px;display:flex;align-items:center;gap:12px}
+.howto summary::-webkit-details-marker{display:none}
+.howto summary .h{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--violet);flex:1}
+.howto summary .hint{font-size:11px;color:var(--muted)}
+.howto[open] summary .hint{display:none}
+.howto summary .chev{color:var(--muted);font-size:10px;transition:transform .18s}
+.howto[open] summary .chev{transform:rotate(180deg)}
+.howto ul{margin:0;padding:0 18px 15px 36px}
 .howto li{font-size:13px;color:var(--muted);line-height:1.7}
 .howto b{color:var(--text);font-weight:500}
 .howto kbd{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;font-size:12.5px;color:var(--cyan);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
@@ -141,13 +147,17 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
 <body>
 <div class="wrap">
   <div class="hd">
-    <div class="eyebrow">Daily time record · 24 h</div>
-    <h1>Hours worked</h1>
+    <div class="eyebrow">Non-exempt · travel · 24 h</div>
+    <h1>Daily Hours Calculator</h1>
     <p class="sub">Enter each transfer time as it happened — the total and the projections update as you type.</p>
   </div>
 
-  <div class="howto">
-    <div class="h">How to use</div>
+  <details class="howto">
+    <summary>
+      <span class="h">How to use</span>
+      <span class="hint">Tap to expand</span>
+      <span class="chev">▾</span>
+    </summary>
     <ul>
       <li><b>Use 24-hour time.</b> 4:30 in the afternoon is <kbd>16:30</kbd>. There is no AM/PM anywhere in this tool.</li>
       <li><b>You don't need to type the colon.</b> Type <kbd>0745</kbd> and it becomes <kbd>07:45</kbd> when you leave the field. <kbd>9</kbd> becomes <kbd>09:00</kbd>, <kbd>930</kbd> becomes <kbd>09:30</kbd>. A field outlined in red means the time isn't valid.</li>
@@ -156,7 +166,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
       <li><b>Tick "Lunch taken" only if you took one</b>, then enter the clock-out and clock-in times for the break.</li>
       <li><b>Travel pays after the first 0:30 of each leg</b> — a 0:15 drive counts as 0:00, a 0:50 drive counts as 0:20.</li>
     </ul>
-  </div>
+  </details>
 
   <div class="grid">
     <!-- ============ run sheet ============ -->
@@ -582,7 +592,7 @@ function render(){
 }
 
 function summary(){
-  const s = readState(), r = compute(s.t, s.on, s.lunch), lines = ["Daily hours (24 h)"];
+  const s = readState(), r = compute(s.t, s.on, s.lunch), lines = ["Daily Hours Calculator"];
   r.spans.forEach((sp) => {
     if(sp.kind === "work" || sp.kind === "travel")
       lines.push(sp.label + ": " + fmt(sp.paid) + (sp.ded > 0 ? " (\u2212" + fmt(sp.ded) + ")" : ""));
