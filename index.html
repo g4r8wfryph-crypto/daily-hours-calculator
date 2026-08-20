@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+  Daily Hours Calculator
+  Copyright (c) 2026 g4r8wfryph-crypto
+
+  Licensed under the Creative Commons Attribution-NonCommercial 4.0
+  International License (CC BY-NC 4.0). You are free to share and adapt this
+  work for non-commercial purposes, provided you give appropriate credit.
+
+  Full license text:  https://github.com/g4r8wfryph-crypto/daily-hours-calculator?tab=License-1-ov-file
+  License deed:       https://creativecommons.org/licenses/by-nc/4.0/
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -110,6 +121,20 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
 .prow.done b{color:var(--cyan)}
 .prow em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--muted);white-space:nowrap}
 .phint{font-size:12px;color:var(--muted)}
+
+.howto{margin:0 0 26px;background:linear-gradient(180deg,#121A23,#0C1219);box-shadow:inset 0 1px 0 rgba(198,214,228,.07);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.howto .h{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--violet);margin-bottom:9px}
+.howto ul{margin:0;padding-left:18px}
+.howto li{font-size:13px;color:var(--muted);line-height:1.7}
+.howto b{color:var(--text);font-weight:500}
+.howto kbd{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;font-size:12.5px;color:var(--cyan);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.legal{margin-top:24px;border-top:1px solid var(--line);padding-top:16px;font-size:11.5px;color:var(--muted);line-height:1.7;max-width:80ch}
+.legal .h{font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+.legal p{margin:0 0 9px}
+.legal strong{color:var(--text);font-weight:500}
+.legal a{color:var(--violet);text-decoration:none;border-bottom:1px solid rgba(46,155,230,.45)}
+.legal a:hover{border-bottom-color:var(--violet)}
+.copyline{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);color:#68757F}
 .foot{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6}
 </style>
 </head>
@@ -118,7 +143,19 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
   <div class="hd">
     <div class="eyebrow">Daily time record · 24 h</div>
     <h1>Hours worked</h1>
-    <p class="sub">Enter each transfer time as it happened. Travel pays after the first 0:30 of each leg. Untick any segment you didn't run that day.</p>
+    <p class="sub">Enter each transfer time as it happened — the total and the projections update as you type.</p>
+  </div>
+
+  <div class="howto">
+    <div class="h">How to use</div>
+    <ul>
+      <li><b>Use 24-hour time.</b> 4:30 in the afternoon is <kbd>16:30</kbd>. There is no AM/PM anywhere in this tool.</li>
+      <li><b>You don't need to type the colon.</b> Type <kbd>0745</kbd> and it becomes <kbd>07:45</kbd> when you leave the field. <kbd>9</kbd> becomes <kbd>09:00</kbd>, <kbd>930</kbd> becomes <kbd>09:30</kbd>. A field outlined in red means the time isn't valid.</li>
+      <li><b>Fill the rows top to bottom</b>, in the order the day happened. Times past midnight are handled automatically.</li>
+      <li><b>Untick any segment you didn't run.</b> A travel leg you leave blank drops out on its own — the work either side runs straight through it.</li>
+      <li><b>Tick "Lunch taken" only if you took one</b>, then enter the clock-out and clock-in times for the break.</li>
+      <li><b>Travel pays after the first 0:30 of each leg</b> — a 0:15 drive counts as 0:00, a 0:50 drive counts as 0:20.</li>
+    </ul>
   </div>
 
   <div class="grid">
@@ -225,6 +262,15 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
     Times roll over midnight automatically — an entry earlier than the one above it is read as the next day.<br>
     Travel deduction is applied per leg: 0:15 pays 0:00, 0:50 pays 0:20.<br>
     A travel leg you leave blank drops out of the day — the work on either side runs straight through it.
+  </div>
+
+  <div class="legal">
+    <div class="h">Please read before relying on these numbers</div>
+    <p><strong>This is an estimating tool, not a system of record.</strong> Travel-time compensation rules vary by employer, state, and job classification. Check every total against your employer's written policy and your own records before you submit your time.</p>
+    <p><strong>No warranty.</strong> This tool is provided as is, without warranty of any kind, express or implied. The author accepts no liability for underpaid or overpaid time, rejected timesheets, disciplinary action, or any other loss arising from its use. You are responsible for the accuracy of the hours you report.</p>
+    <p><strong>Nothing leaves this page.</strong> Entries are held in memory only — nothing is saved, transmitted, or tracked. Closing or refreshing the page clears the day.</p>
+    <p>Licensed under <a href="https://github.com/g4r8wfryph-crypto/daily-hours-calculator?tab=License-1-ov-file" target="_blank" rel="noopener noreferrer">Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)</a> — free to share and adapt for non-commercial purposes, with attribution.</p>
+    <div class="copyline">© 2026 Zaid Hamilton · Daily Hours Calculator</div>
   </div>
 </div>
 
