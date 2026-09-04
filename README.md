@@ -1,6 +1,6 @@
 # Daily Hours Calculator
 
-A single-page timesheet calculator for non-exempt days that include field travel. Enter your transfer times in 24-hour format and it returns the total worked time in `HH:MM`, a decimal-hours figure for payroll entry, and a live projection of when you'll cross 8:00 and 8:30 worked.
+A single-page timesheet calculator for non-exempt days that include field travel. Enter your transfer times in 24-hour format and it returns the total worked time in `HH:MM`, a decimal-hours figure for payroll entry, a live projection of when you'll cross 8:00 and 8:30 worked, and an overtime figure you can request in advance.
 
 No build step, no dependencies, no network calls, no data leaves the page.
 
@@ -8,7 +8,7 @@ No build step, no dependencies, no network calls, no data leaves the page.
 
 ## Why
 
-Standard time clocks assume you clock in, maybe take lunch, and clock out. They don't handle a day that goes *work → drive → work → drive → work*, where travel is only partly compensated. This does, and it shows the arithmetic rather than just the answer.
+Standard time clocks assume you clock in, maybe take lunch, and clock out. They don't handle a day that goes *work → drive → work → drive → work*, where travel is only partly compensated, or the question of how much overtime to ask your supervisor to approve before you've actually worked it. This does, and it shows the arithmetic rather than just the answer.
 
 ## The rules it implements
 
@@ -19,6 +19,7 @@ Standard time clocks assume you clock in, maybe take lunch, and clock out. They 
 | Unused segments | Untick a segment, or leave a travel leg's transfer times blank, and it drops out — the work on either side runs straight through it. |
 | Midnight | Any time earlier than the one above it is read as the next day, so overnight shifts total correctly. |
 | Open travel | A leg with a start time but no end time counts as zero in the projections until both times are entered. |
+| Overtime rounding | Any overtime past a full 15-minute mark rounds **up** to the next one. `8:01` worked requests `0:15`; `8:15` exactly requests `0:15`; `8:16` requests `0:30`. |
 
 ## The day model
 
@@ -35,7 +36,7 @@ Travel 2 starts     ─┤
                      ├─ Travel 2          (first 0:30 unpaid)
 Non-exempt resumes  ─┤
                      ├─ Post-travel work
-Clock out           ─┘
+Clock out            ─┘
 ```
 
 Internally the day is measured between the times you actually filled in, not segment by segment. A disabled or blank segment is removed from its stretch and the surrounding segments merge, which is why partial days and no-travel days total correctly.
@@ -44,7 +45,11 @@ One case is deliberately not guessed: a travel leg with only *one* of its two tr
 
 ## Projected clock-out
 
-As you type, the panel shows the wall-clock time at which 8:00 and 8:30 of worked time would be reached, assuming the day carries on as it currently stands. A future lunch you've already entered is pushed out of the count. Once a target is passed, the row switches tone and reports the time you crossed it. Targets more than 24 hours out show a dash; overnight targets are marked `+1d`.
+As you type, this panel shows the wall-clock time at which 8:00 and 8:30 of worked time would be reached, assuming the day carries on as it currently stands. A future lunch you've already entered is pushed out of the count. A travel leg that's started but not finished counts as zero time until you fill in when it ended. Once a target is passed, the row switches tone and reports the time you crossed it. Targets more than 24 hours out show a dash; overnight targets are marked `+1d`.
+
+## Overtime request
+
+A separate field from your actual **Clock out**. Type the time you're planning to leave, and it shows the total you'd have worked and the overtime to request — rounded up to the next quarter hour, so you're never asking for less than you'll actually work. It uses the same travel and lunch rules as the rest of the sheet, and it declines to guess if the times leading up to your hypothetical clock-out are incomplete or ambiguous.
 
 ## Usage
 
@@ -70,12 +75,16 @@ Styles are scoped under a `.tc` root class and injected by the component, so the
 
 Type `0745` or `7:45` — both normalize to `07:45` when the field loses focus. Bare hours work too: `9` becomes `09:00`. Invalid entries are outlined rather than silently discarded. 24-hour format throughout; there is no AM/PM anywhere in the tool.
 
+Instructions for using the sheet are in a collapsed "How to use" panel at the top — tap it to expand; it stays out of the way otherwise so the clock-in field is the first thing you reach.
+
 ### Output
 
 - **Total worked** in `HH:MM`, with decimal hours beneath it
 - **Breakdown** line by line, with unpaid travel and lunch shown as explicit deductions
+- **Projected clock-out** — the time you'll cross 8:00 and 8:30, updated live
+- **Overtime request** — total and overtime for a hypothetical clock-out time you enter, rounded up to the next 0:15
 - **Day bar** — a proportional strip of the whole day, hatched where time wasn't counted
-- **Copy summary** — plain-text summary of the day for pasting into a timesheet
+- **Copy summary** — plain-text summary of the day, including the overtime line if you've entered one, for pasting into a timesheet
 
 ## Files
 
@@ -94,9 +103,11 @@ The values worth changing live at the top of the model section in either file:
 ```js
 const TRAVEL_GRACE = 30;      // unpaid minutes at the start of each travel leg
 const TARGETS = [480, 510];   // projection targets, in minutes (8:00 and 8:30)
+const OT_THRESHOLD = 480;     // minutes worked before overtime starts (8:00)
+const OT_ROUND = 15;          // overtime always rounds up to this many minutes
 ```
 
-If your policy grants the 0:30 once per day rather than once per leg, that's a change to how the grace is summed, not a constant — open an issue and it's a small patch.
+If your policy grants the travel 0:30 once per day rather than once per leg, that's a change to how the grace is summed, not a constant — open an issue and it's a small patch.
 
 ## Notes
 
