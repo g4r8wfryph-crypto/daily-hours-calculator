@@ -51,6 +51,8 @@ As you type, this panel shows the wall-clock time at which 8:00 and 8:30 of work
 
 A separate field from your actual **Clock out**. Type the time you're planning to leave, and it shows the total you'd have worked and the overtime to request — rounded up to the next quarter hour, so you're never asking for less than you'll actually work. It uses the same travel and lunch rules as the rest of the sheet, and it declines to guess if the times leading up to your hypothetical clock-out are incomplete or ambiguous.
 
+One exception, by design: if a travel leg has started but hasn't finished yet (its start time is entered, its end time isn't), the overtime figure counts that stretch as ordinary work rather than blocking on it. That's always the largest defensible total — real travel time can only reduce it, via the 0:30 unpaid grace — so the result is the maximum overtime worth pre-clearing. The panel names the leg it did this for, so it's clear the number is a ceiling, not a certainty. This is intentional: the tool is meant to keep you compliant with overtime approval policy by asking for enough up front, not to predict exactly what you'll end up using.
+
 ## Usage
 
 **Standalone (`daily-hours-calculator.html`)**
