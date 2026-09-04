@@ -173,7 +173,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
       <li><b>Untick any segment you didn't run.</b> A travel leg you leave blank drops out on its own — the work either side runs straight through it.</li>
       <li><b>Tick "Lunch taken" only if you took one</b>, then enter the clock-out and clock-in times for the break.</li>
       <li><b>Travel pays after the first 0:30 of each leg</b> — a 0:15 drive counts as 0:00, a 0:50 drive counts as 0:20.</li>
-      <li><b>Overtime request is separate from your real Clock out.</b> Type the time you plan to leave and it shows the total and the overtime to ask for, rounded up to the next 0:15.</li>
+      <li><b>Overtime request is separate from your real Clock out.</b> Type the time you plan to leave and it shows the total and the overtime to ask for, rounded up to the next 0:15. If a travel leg has started but hasn't finished yet, it's counted as regular work so you get the maximum to request now.</li>
     </ul>
   </details>
 
@@ -511,6 +511,30 @@ function project(r, on) {
    Reuses the same span model so travel/lunch rules stay identical. */
 var OT_THRESHOLD = 480;
 var OT_ROUND = 15;
+/* For overtime purposes only: a travel leg that's started but not finished (or
+   vice versa) is resolved to zero duration rather than left ambiguous. That
+   folds the uncertain stretch into ordinary work, which is always the largest
+   defensible total — the point being to request the maximum OT up front. */
+function maxTravelTimes(t, on){
+  var out = {}; for(var k in t) out[k] = t[k];
+  DEFS.forEach(function(d){
+    if(d.type !== 'travel' || !on[d.key]) return;
+    var aOk = toMin(out[d.a]) !== null, bOk = toMin(out[d.b]) !== null;
+    if(aOk && !bOk) out[d.b] = out[d.a];
+    else if(!aOk && bOk) out[d.a] = out[d.b];
+  });
+  return out;
+}
+function openTravelLegs(t, on){
+  var labels = [];
+  DEFS.forEach(function(d){
+    if(d.type !== 'travel' || !on[d.key]) return;
+    var aOk = toMin(t[d.a]) !== null, bOk = toMin(t[d.b]) !== null;
+    if(aOk !== bOk) labels.push(d.label);
+  });
+  return labels;
+}
+
 function renderOvertime(s){
   var box = document.getElementById('otResult');
   var raw = document.getElementById('t_otClockOut').value;
@@ -520,16 +544,21 @@ function renderOvertime(s){
   }
   var t2 = {}; for(var k in s.t) t2[k] = s.t[k];
   t2.clockOut = raw;
-  var rOT = compute(t2, s.on, s.lunch);
+  var open = openTravelLegs(t2, s.on);
+  var t3 = maxTravelTimes(t2, s.on);
+  var rOT = compute(t3, s.on, s.lunch);
   if(rOT.incomplete){
     box.innerHTML = '<div class="phint">Fill in the missing transfer time(s) before projecting overtime.</div>';
     return;
   }
   var over = Math.max(0, rOT.total - OT_THRESHOLD);
   var rounded = Math.ceil(over / OT_ROUND) * OT_ROUND;
-  box.innerHTML =
+  var html =
     '<div class="otout"><span>Total worked</span><b class="mono">' + fmt(rOT.total) + '</b></div>'
   + '<div class="otout hi"><span>Overtime to request</span><b class="mono">' + fmt(rounded) + '</b></div>';
+  if(open.length)
+    html += '<div class="phint">' + open.join(' and ') + ' not finished yet \u2014 counted as regular work, so this is the maximum to request.</div>';
+  box.innerHTML = html;
 }
 
 /* ---------------- render ---------------- */
@@ -651,7 +680,8 @@ function summary(){
   const otRaw = document.getElementById('t_otClockOut').value;
   if(otRaw.trim() !== '' && toMin(otRaw) !== null){
     const t2 = { ...s.t, clockOut: otRaw };
-    const rOT = compute(t2, s.on, s.lunch);
+    const t3 = maxTravelTimes(t2, s.on);
+    const rOT = compute(t3, s.on, s.lunch);
     if(!rOT.incomplete){
       const over = Math.ceil(Math.max(0, rOT.total - OT_THRESHOLD) / OT_ROUND) * OT_ROUND;
       lines.push('If clock out at ' + otRaw + ': total ' + fmt(rOT.total) + ', overtime to request ' + fmt(over));
