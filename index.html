@@ -113,6 +113,14 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
 .b.pri{background:linear-gradient(180deg,#1B7FC7,#0C5488);border-color:#2A8BD0}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
+.ot{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.ot .otitle{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.ot .otrow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ot .otrow label{font-size:13px;color:var(--text);flex:1}
+.ot .otout{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;font-size:13px;color:var(--muted)}
+.ot .otout b{color:var(--text);font-weight:500}
+.ot .otout.hi{margin-top:2px;padding-top:8px;border-top:1px dashed var(--line)}
+.ot .otout.hi b{color:var(--violet);font-size:19px}
 .proj{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
 .ptitle{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .prow{display:flex;align-items:baseline;gap:10px;padding:5px 0}
@@ -165,6 +173,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
       <li><b>Untick any segment you didn't run.</b> A travel leg you leave blank drops out on its own — the work either side runs straight through it.</li>
       <li><b>Tick "Lunch taken" only if you took one</b>, then enter the clock-out and clock-in times for the break.</li>
       <li><b>Travel pays after the first 0:30 of each leg</b> — a 0:15 drive counts as 0:00, a 0:50 drive counts as 0:20.</li>
+      <li><b>Overtime request is separate from your real Clock out.</b> Type the time you plan to leave and it shows the total and the overtime to ask for, rounded up to the next 0:15.</li>
     </ul>
   </details>
 
@@ -252,6 +261,15 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet);cursor:po
 
       <div class="brk" id="brk"></div>
       <div class="proj" id="proj"></div>
+
+      <div class="ot" id="ot">
+        <div class="otitle">Overtime request</div>
+        <div class="otrow">
+          <label for="t_otClockOut">If I clock out at</label>
+          <input class="tin mono sm" id="t_otClockOut" placeholder="HH:MM" inputmode="numeric" maxlength="5" aria-label="Projected clock out for overtime calculation">
+        </div>
+        <div id="otResult"><div class="phint">Enter a projected clock-out time to calculate overtime to request.</div></div>
+      </div>
 
       <div class="tl" id="tl"><div class="empty">Enter times to plot the day</div></div>
       <div class="legend">
@@ -488,6 +506,32 @@ function project(r, on) {
   });
 }
 
+/* ---------------- overtime request ----------------
+   A hypothetical clock-out, independent of the real Clock out field.
+   Reuses the same span model so travel/lunch rules stay identical. */
+var OT_THRESHOLD = 480;
+var OT_ROUND = 15;
+function renderOvertime(s){
+  var box = document.getElementById('otResult');
+  var raw = document.getElementById('t_otClockOut').value;
+  if(raw.trim() === '' || toMin(raw) === null){
+    box.innerHTML = '<div class="phint">Enter a projected clock-out time to calculate overtime to request.</div>';
+    return;
+  }
+  var t2 = {}; for(var k in s.t) t2[k] = s.t[k];
+  t2.clockOut = raw;
+  var rOT = compute(t2, s.on, s.lunch);
+  if(rOT.incomplete){
+    box.innerHTML = '<div class="phint">Fill in the missing transfer time(s) before projecting overtime.</div>';
+    return;
+  }
+  var over = Math.max(0, rOT.total - OT_THRESHOLD);
+  var rounded = Math.ceil(over / OT_ROUND) * OT_ROUND;
+  box.innerHTML =
+    '<div class="otout"><span>Total worked</span><b class="mono">' + fmt(rOT.total) + '</b></div>'
+  + '<div class="otout hi"><span>Overtime to request</span><b class="mono">' + fmt(rounded) + '</b></div>';
+}
+
 /* ---------------- render ---------------- */
 function readState(){
   const t = {};
@@ -589,6 +633,8 @@ function render(){
       return '<div class="blk ' + sp.kind + '" style="flex:' + sp.elapsed + ' 0 0" title="' + sp.label + '">' + inner + "</div>";
     }).join("");
   }
+
+  renderOvertime(s);
 }
 
 function summary(){
@@ -602,11 +648,20 @@ function summary(){
   lines.push("TOTAL WORKED: " + fmt(r.total) + "  (" + (r.total / 60).toFixed(2) + " h)");
   const p = project(r, s.on);
   if(p) p.forEach((x) => { if(x.at !== null) lines.push(fmt(x.target) + " worked at " + clockAt(x.at)); });
+  const otRaw = document.getElementById('t_otClockOut').value;
+  if(otRaw.trim() !== '' && toMin(otRaw) !== null){
+    const t2 = { ...s.t, clockOut: otRaw };
+    const rOT = compute(t2, s.on, s.lunch);
+    if(!rOT.incomplete){
+      const over = Math.ceil(Math.max(0, rOT.total - OT_THRESHOLD) / OT_ROUND) * OT_ROUND;
+      lines.push('If clock out at ' + otRaw + ': total ' + fmt(rOT.total) + ', overtime to request ' + fmt(over));
+    }
+  }
   return lines.join("\n");
 }
 
 /* ---------------- wiring ---------------- */
-var allTimeIds = TIMES.concat(['lunchOut','lunchIn']);
+var allTimeIds = TIMES.concat(['lunchOut','lunchIn','otClockOut']);
 allTimeIds.forEach(function(k){
   var el = document.getElementById('t_'+k);
   el.addEventListener('input', function(){ el.value = mask(el.value); render(); });
